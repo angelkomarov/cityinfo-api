@@ -1,0 +1,47 @@
+﻿@page
+@model CityInfoWebClient.Pages.APIClientModel
+@{
+    ViewData["Title"] = "Cross-Origin Requests";
+}
+
+<script src="~/lib/jquery/dist/jquery.js"></script>
+
+<script type="text/javascript">
+
+    $(document).ready(function () {
+        $('#btnGetCities').click(fnGetCities);
+    });
+
+    var fnGetCities = function () {
+        var options = {
+            url: "https://localhost:44313/api/cities/async", //URL address
+            type: 'GET', //mehod attr: get
+            //contentType: 'application/json', //??AK - not necessary, generates an extra request
+            //dataType: 'jsonp' //??AK - not working!!!
+            cache: false
+        };
+        //$.support.cors = true;
+        //ajax call!!!
+        $.ajax(options).done(function (data) { //callback function
+            fnShowResponce(data);
+        }).fail(function (jqXHR, textStatus, errorThrown) {
+            alert(textStatus + " - " + errorThrown + ": " + jqXHR.responseText);
+        });
+
+        return false; //prevent browser to navigate away from that page. 
+    };
+
+
+    //display the response
+    var fnShowResponce = function (data) {
+        $('#output').text(JSON.stringify(data, null, 4));
+    };
+
+</script>
+
+<h1>CORS request</h1>
+
+<button id="btnGetCities">Get Cities</button>
+
+<pre id="output">
+</pre>
