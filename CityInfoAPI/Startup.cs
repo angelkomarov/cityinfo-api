@@ -13,7 +13,12 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Serialization;
 using CityInfo.API.Entities;
 using CityInfo.API.Services;
-using CityInfo.API;
+using CityInfo.API.DAL.Interfaces;
+using CityInfoAPI.BL;
+using CityInfoAPI.BL.Interfaces;
+using CityInfo.API.Services.Interfaces;
+using CityInfo.API.Util.Interfaces;
+using CityInfo.API.Util;
 
 namespace CityInfoAPI
 {
@@ -50,6 +55,7 @@ namespace CityInfoAPI
             services.AddCors(options =>
             {
                 //CORS Middleware handles cross-origin requests
+                //configure CORS policy
                 options.AddPolicy(CorsSpecificOrigins,
                 builder =>
                 {
@@ -76,15 +82,25 @@ namespace CityInfoAPI
             var connectionString = Startup.Configuration["connectionStrings:cityInfoDBConnectionString"];
             //!!AK3.3 register for DI context (pass connection string in DBContext options param)
             services.AddDbContext<CityInfoContext>(o => o.UseSqlServer(connectionString));
-            //!!AK5.5 register Repository service as scoped (per request)
+            //!!AK5.5 register Repository service as scoped (per request) - DAL
             services.AddScoped<ICityInfoRepository, CityInfoRepository>(r => new CityInfoRepository(r.GetRequiredService<CityInfoContext>()));
-            services.AddScoped<ICitiesService, CitiesService>(s => new CitiesService(s.GetRequiredService<ICityInfoRepository>(),
+            //register business layer 
+            services.AddScoped<ICitiesOperation, CitiesOperation>(s => new CitiesOperation(s.GetRequiredService<ICityInfoRepository>(),
+                s.GetRequiredService<ILogger<CitiesOperation>>()));
+            services.AddScoped<IPointsOfInterestOperation, PointsOfInterestOperation>(s => new PointsOfInterestOperation(s.GetRequiredService<ICityInfoRepository>(),
+                            s.GetRequiredService<IMailService>(), s.GetRequiredService<ILogger<PointsOfInterestOperation>>()));
+            services.AddScoped<IStatusOperation, StatusOperation>(s => new StatusOperation(s.GetRequiredService<ICityInfoRepository>(),
+                            s.GetRequiredService<ILogger<StatusOperation>>()));
+            //register service layer
+            services.AddScoped<ICitiesService, CitiesService>(s => new CitiesService(s.GetRequiredService<ICitiesOperation>(),
                 s.GetRequiredService< ILogger<CitiesService>>()));
-            services.AddScoped<IPointsOfInterestService, PointsOfInterestService>(s => new PointsOfInterestService(s.GetRequiredService<ICityInfoRepository>(),
-                            s.GetRequiredService<IMailService>(), s.GetRequiredService<ILogger<PointsOfInterestService>>()));
-
-            //services.AddScoped<ICityInfoService, CityInfoService>(s => new CityInfoService(s.GetRequiredService<ICityInfoRepository>(),
-            //    LoggerFactory.CreateLogger<CityInfoService>()));
+            services.AddScoped<IPointsOfInterestService, PointsOfInterestService>(s => new PointsOfInterestService(s.GetRequiredService<IPointsOfInterestOperation>(),
+                            s.GetRequiredService<ILogger<PointsOfInterestService>>()));
+            services.AddScoped<IStatusService, StatusService>(s => new StatusService(s.GetRequiredService<IStatusOperation>(),
+                            s.GetRequiredService<ILogger<StatusService>>()));
+            //declare another way
+            //services.AddScoped<ICitiesService, CitiesService>(s => new CitiesService(s.GetRequiredService<ICitiesOperation>(),
+            //    LoggerFactory.CreateLogger<CitiesService>()));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -132,7 +148,7 @@ namespace CityInfoAPI
                 cfg.CreateMap<CityInfo.API.Models.PointOfInterestDto, CityInfo.API.Models.PointOfInterestForUpdateDto>();
             });
 
-            //CORS Middleware handles cross-origin requests
+            //CORS Middleware: enable CORS policy per application
             app.UseCors(CorsSpecificOrigins);
 
             //Add MVC middleware to the request pipeline

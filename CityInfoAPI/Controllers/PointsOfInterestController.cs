@@ -1,11 +1,9 @@
 ﻿using AutoMapper;
 using CityInfo.API.Models;
-using CityInfo.API.Services;
+using CityInfo.API.Services.Interfaces;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -118,7 +116,7 @@ namespace CityInfo.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
             //2.save
-            if (_pointsOfInterestSvc.UpdatePointOfInterest(cityId, id, pointOfInterest) == UpdatePoints.NOT_FOUND)
+            if (!_pointsOfInterestSvc.UpdatePointOfInterest(cityId, id, pointOfInterest))
                 return NotFound();
 
             return NoContent();
@@ -288,7 +286,7 @@ namespace CityInfo.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
             //2.save
-            if (await _pointsOfInterestSvc.UpdatePointOfInterestAsync(cityId, id, pointOfInterest, cancellationToken) == UpdatePoints.NOT_FOUND)
+            if (!await _pointsOfInterestSvc.UpdatePointOfInterestAsync(cityId, id, pointOfInterest, cancellationToken))
                 return NotFound();
 
             return NoContent();

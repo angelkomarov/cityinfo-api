@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CityInfo.API.Services
+namespace CityInfo.API.DAL.Interfaces
 {
     //!!AK5 - implement repository layer
     public interface ICityInfoRepository
@@ -26,6 +26,7 @@ namespace CityInfo.API.Services
 
         # region async
 
+        Task<bool> HealthCheckAsync(CancellationToken cancellationToken);
         Task<bool> CityExistsAsync(int cityId, CancellationToken cancellationToken);
         Task<IEnumerable<City>> GetCitiesAsync(CancellationToken cancellationToken);
         Task<City> GetCityAsync(int cityId, bool includePointsOfInterest, CancellationToken cancellationToken);

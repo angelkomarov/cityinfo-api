@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CityInfo.API.Services
+namespace CityInfo.API.Services.Interfaces
 {
     public interface IPointsOfInterestService
     {
@@ -14,7 +14,7 @@ namespace CityInfo.API.Services
         IEnumerable<PointOfInterestDto> GetPointsOfInterestForCity(int cityId);
         PointOfInterestDto GetPointOfInterestForCity(int cityId, int pointOfInterestId);
         PointOfInterestDto AddPointOfInterestForCity(int cityId, PointOfInterestForCreationDto pointOfInterestDto);
-        UpdatePoints UpdatePointOfInterest(int cityId, int id, PointOfInterestForUpdateDto pointOfInterestDto);
+        bool UpdatePointOfInterest(int cityId, int id, PointOfInterestForUpdateDto pointOfInterestDto);
         void PartiallyUpdatePointOfInterest(int cityId, int pointOfInterestId, PointOfInterestForUpdateDto pointOfInterestDto);
         bool DeletePointOfInterest(int cityId, int id);
 
@@ -25,11 +25,10 @@ namespace CityInfo.API.Services
         Task<IEnumerable<PointOfInterestDto>> GetPointsOfInterestForCityAsync(int cityId, CancellationToken cancellationToken);
         Task<PointOfInterestDto> GetPointOfInterestForCityAsync(int cityId, int pointOfInterestId, CancellationToken cancellationToken);
         Task<PointOfInterestDto> AddPointOfInterestForCityAsync(int cityId, PointOfInterestForCreationDto pointOfInterestDto, CancellationToken cancellationToken);
-        Task<UpdatePoints> UpdatePointOfInterestAsync(int cityId, int pointOfInterestId, PointOfInterestForUpdateDto pointOfInterestDto, CancellationToken cancellationToken);
+        Task<bool> UpdatePointOfInterestAsync(int cityId, int pointOfInterestId, PointOfInterestForUpdateDto pointOfInterestDto, CancellationToken cancellationToken);
         Task PartiallyUpdatePointOfInterestAsync(int cityId, int pointOfInterestId, PointOfInterestForUpdateDto pointOfInterestDto, CancellationToken cancellationToken);
         Task<bool> DeletePointOfInterestAsync(int cityId, int pointOfInterestId, CancellationToken cancellationToken);
 
         #endregion
-
     }
 }

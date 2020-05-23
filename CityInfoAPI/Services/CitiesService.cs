@@ -1,6 +1,6 @@
-﻿using AutoMapper;
-using CityInfo.API.Entities;
-using CityInfo.API.Models;
+﻿using CityInfo.API.Models;
+using CityInfo.API.Services.Interfaces;
+using CityInfoAPI.BL.Interfaces;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -14,13 +14,13 @@ namespace CityInfo.API.Services
     //It is a server component and can be used from other clients - Winforms, Mobile App, Web app.
     public class CitiesService : ICitiesService
     {
+        private ICitiesOperation _citiesOperation;
         private ILogger<CitiesService> _logger;
-        private ICityInfoRepository _cityInfoRepository;
 
-        public CitiesService(ICityInfoRepository cityInfoRepository, ILogger<CitiesService> logger)
+        public CitiesService(ICitiesOperation citiesOperation, ILogger<CitiesService> logger)
         {
             _logger = logger;
-            _cityInfoRepository = cityInfoRepository;
+            _citiesOperation = citiesOperation;
         }
 
         #region sync
@@ -28,9 +28,8 @@ namespace CityInfo.API.Services
         public IEnumerable<CityWithoutPointsOfInterestDto> GetCities()
         {
             try {
-                var cityEntities = _cityInfoRepository.GetCities();
-                //map entity to dto use mapping: <CreateMap<Entities.City, Models.CityWithoutPointsOfInterestDto>
-                return Mapper.Map<IEnumerable<CityWithoutPointsOfInterestDto>>(cityEntities);
+                var cityDTOs = _citiesOperation.GetCities();
+                return cityDTOs;
             }
             catch (Exception ex)
             {
@@ -44,19 +43,8 @@ namespace CityInfo.API.Services
         public CityWithoutPointsOfInterestDto GetCity(int cityId, bool includePointsOfInterest)
         {
             try {
-                var cityEntity = _cityInfoRepository.GetCity(cityId, includePointsOfInterest);
-
-                if (cityEntity == null)
-                    return null;
-
-                if (includePointsOfInterest)
-                {
-                    //map entity to dto - use mapping: <CreateMap<Entities.City, Models.CityDto>
-                    return Mapper.Map<CityDto>(cityEntity);
-                }
-
-                //map entity to dto use mapping: CreateMap<Entities.PointOfInterest, Models.PointOfInterestDto>
-                return Mapper.Map<CityWithoutPointsOfInterestDto>(cityEntity);
+                var cityDTO = _citiesOperation.GetCity(cityId, includePointsOfInterest);
+                return cityDTO;
             }
             catch (Exception ex)
             {
@@ -73,9 +61,8 @@ namespace CityInfo.API.Services
         {
             try
             {
-                var cityEntities = await _cityInfoRepository.GetAllCityInfoAsync(cancellationToken);
-                //map entity to dto use mapping:CreateMap<Entities.City, Models.CityDto>
-                return Mapper.Map<IEnumerable<CityDto>>(cityEntities);
+                var cityDTOs = await _citiesOperation.GetAllCityInfoAsync(cancellationToken);
+                return cityDTOs;
             }
             catch (Exception ex)
             {
@@ -87,9 +74,8 @@ namespace CityInfo.API.Services
         public async Task<IEnumerable<CityWithoutPointsOfInterestDto>> GetCitiesAsync(CancellationToken cancellationToken)
         {
             try {
-                var cityEntities = await _cityInfoRepository.GetCitiesAsync(cancellationToken);
-                //map entity to dto use mapping:CreateMap<Entities.City, Models.CityWithoutPointsOfInterestDto>
-                return Mapper.Map<IEnumerable<CityWithoutPointsOfInterestDto>>(cityEntities);
+                var cityDTOs = await _citiesOperation.GetCitiesAsync(cancellationToken);
+                return cityDTOs;
             }
             catch (Exception ex)
             {
@@ -102,19 +88,8 @@ namespace CityInfo.API.Services
         {
             try
             {
-                var cityEntity = await _cityInfoRepository.GetCityAsync(cityId, includePointsOfInterest, cancellationToken);
-
-                if (cityEntity == null)
-                    return null;
-
-                if (includePointsOfInterest)
-                {
-                    //map entity to dto - use mapping: CreateMap<Entities.City, Models.CityDto>
-                    return Mapper.Map<CityDto>(cityEntity);
-                }
-
-                //map entity to dto use mapping: CreateMap<Entities.PointOfInterest, Models.PointOfInterestDto>
-                return Mapper.Map<CityWithoutPointsOfInterestDto>(cityEntity);
+                var cityDTO = await _citiesOperation.GetCityAsync(cityId, includePointsOfInterest, cancellationToken);
+                return cityDTO;
             }
             catch (Exception ex)
             {

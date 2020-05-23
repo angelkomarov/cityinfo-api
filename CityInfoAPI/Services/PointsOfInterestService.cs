@@ -1,6 +1,6 @@
-﻿using AutoMapper;
-using CityInfo.API.Entities;
-using CityInfo.API.Models;
+﻿using CityInfo.API.Models;
+using CityInfo.API.Services.Interfaces;
+using CityInfoAPI.BL.Interfaces;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
@@ -12,17 +12,14 @@ using System.Threading.Tasks;
 
 namespace CityInfo.API.Services
 {
-    public enum UpdatePoints { NOT_FOUND, OK} 
     public class PointsOfInterestService : IPointsOfInterestService
     {
-        private ICityInfoRepository _cityInfoRepository;
-        private IMailService _mailService;
+        private IPointsOfInterestOperation _pointsOfInterestOperation;
         private ILogger<PointsOfInterestService> _logger;
 
-        public PointsOfInterestService(ICityInfoRepository cityInfoRepository, IMailService mailService, ILogger<PointsOfInterestService> logger)
+        public PointsOfInterestService(IPointsOfInterestOperation pointsOfInterestOperation, ILogger<PointsOfInterestService> logger)
         {
-            _cityInfoRepository = cityInfoRepository;
-            _mailService = mailService;
+            _pointsOfInterestOperation = pointsOfInterestOperation;
             _logger = logger;
         }
 
@@ -30,16 +27,9 @@ namespace CityInfo.API.Services
 
         public IEnumerable<PointOfInterestDto> GetPointsOfInterestForCity(int cityId)
         {
-            try {
-                if (!_cityInfoRepository.CityExists(cityId))
-                {
-                    _logger.LogError($"City does not exist: {cityId}");
-                    return null;
-                }
-                var pointsOfInterestForCityEntities = _cityInfoRepository.GetPointsOfInterestForCity(cityId);
-
-                //map entity to dto use mapping: <Entities.PointOfInterest, Models.PointOfInterestDto>
-                return Mapper.Map<IEnumerable<PointOfInterestDto>>(pointsOfInterestForCityEntities);
+            try
+            {
+                return _pointsOfInterestOperation.GetPointsOfInterestForCity(cityId);
             }
             catch (Exception ex)
             {
@@ -52,21 +42,7 @@ namespace CityInfo.API.Services
         {
             try
             {
-                if (!_cityInfoRepository.CityExists(cityId))
-                {
-                    _logger.LogError($"City does not exist: {cityId}");
-                    return null;
-                }
-
-                var pointOfInterestEntity = _cityInfoRepository.GetPointOfInterestForCity(cityId, pointOfInterestId);
-                if (pointOfInterestEntity == null)
-                {
-                    _logger.LogError($"Point of Interest {pointOfInterestId} for city {cityId} does not exist");
-                    return null;
-                }
-
-                //map entity to dto use mapping: <Entities.PointOfInterest, Models.PointOfInterestDto>
-                return Mapper.Map<PointOfInterestDto>(pointOfInterestEntity);
+                return _pointsOfInterestOperation.GetPointOfInterestForCity(cityId, pointOfInterestId);
             }
             catch (Exception ex)
             {
@@ -78,24 +54,7 @@ namespace CityInfo.API.Services
         {
             try
             {
-                if (!_cityInfoRepository.CityExists(cityId))
-                {
-                    _logger.LogError($"City does not exist: {cityId}");
-                    return null;
-                }
-
-                //!!AK7.2 map dto to entity use mapping: note mapper maps subset of fields
-                //<Models.PointOfInterestForCreationDto, Entities.PointOfInterest>
-                var pointOfInterestEntity = Mapper.Map<Entities.PointOfInterest>(pointOfInterestDto);
-                //Add created entity
-                _cityInfoRepository.AddPointOfInterestForCity(cityId, pointOfInterestEntity);
-                //save new entity to DB
-                if (!_cityInfoRepository.Save())
-                    throw new ApplicationException($"A problem while saving Point of Int for city Id: {cityId}.");
-
-                //map entity back to dto: to get the new generated id (generated after Save()) 
-                //<Entities.PointOfInterest, Models.PointOfInterestDto>
-                return Mapper.Map<PointOfInterestDto>(pointOfInterestEntity);
+                return _pointsOfInterestOperation.AddPointOfInterestForCity(cityId, pointOfInterestDto);
             }
             catch (Exception ex)
             {
@@ -103,33 +62,11 @@ namespace CityInfo.API.Services
                 throw;
             }
         }
-        public UpdatePoints UpdatePointOfInterest(int cityId, int pointOfInterestId, PointOfInterestForUpdateDto pointOfInterestDto)
+        public bool UpdatePointOfInterest(int cityId, int pointOfInterestId, PointOfInterestForUpdateDto pointOfInterestDto)
         {
             try
             {
-                var result = UpdatePoints.OK;
-
-                if (!_cityInfoRepository.CityExists(cityId))
-                {
-                    _logger.LogError($"City does not exist: {cityId}");
-                    result = UpdatePoints.NOT_FOUND;
-                }
-
-                var pointOfInterestEntity = _cityInfoRepository.GetPointOfInterestForCity(cityId, pointOfInterestId);
-                if (pointOfInterestEntity == null)
-                {
-                    _logger.LogError($"Point of Interest {pointOfInterestId} for city {cityId} does not exist");
-                    result = UpdatePoints.NOT_FOUND;
-                }
-
-                //we do full update on PUT request (if some field is missed then it is populated with null!!!)
-                //map dto to entity use mapping: <PointOfInterestForUpdateDto, Entities.PointOfInterest>()
-                Mapper.Map(pointOfInterestDto, pointOfInterestEntity);
-
-                if (!_cityInfoRepository.Save())
-                    throw new ApplicationException($"A problem while saving city Id: {cityId}, Point Of Int: {pointOfInterestId} .");
-
-                return result;
+                return _pointsOfInterestOperation.UpdatePointOfInterest(cityId, pointOfInterestId, pointOfInterestDto);
             }
             catch (Exception ex)
             {
@@ -139,13 +76,9 @@ namespace CityInfo.API.Services
         }
         public void PartiallyUpdatePointOfInterest(int cityId, int pointOfInterestId, PointOfInterestForUpdateDto pointOfInterestDto)
         {
-            try {
-                var pointOfInterestEntity = _cityInfoRepository.GetPointOfInterestForCity(cityId, pointOfInterestId);
-
-                //<Models.PointOfInterestForUpdateDto, Entities.PointOfInterest>
-                Mapper.Map(pointOfInterestDto, pointOfInterestEntity);
-                if (!_cityInfoRepository.Save())
-                    throw new ApplicationException($"A problem while saving city Id: {cityId}, Point Of Int: {pointOfInterestId} .");
+            try
+            {
+                _pointsOfInterestOperation.PartiallyUpdatePointOfInterest(cityId, pointOfInterestId, pointOfInterestDto);
             }
             catch (Exception ex)
             {
@@ -156,29 +89,9 @@ namespace CityInfo.API.Services
 
         public bool DeletePointOfInterest(int cityId, int pointOfInterestId)
         {
-            try {
-                if (!_cityInfoRepository.CityExists(cityId))
-                {
-                    _logger.LogError($"City does not exist: {cityId}");
-                    return false;
-                }
-
-                var pointOfInterestEntity = _cityInfoRepository.GetPointOfInterestForCity(cityId, pointOfInterestId);
-                if (pointOfInterestEntity == null)
-                {
-                    _logger.LogError($"Point of Interest {pointOfInterestId} for city {cityId} does not exist");
-                    return false;
-                }
-
-                _cityInfoRepository.DeletePointOfInterest(pointOfInterestEntity);
-                if (!_cityInfoRepository.Save())
-                    throw new ApplicationException($"A problem while saving city Id: {cityId}, Point Of Int: {pointOfInterestId} .");
-
-                //use custom service
-                _mailService.Send("Point of interest deleted.",
-                        $"Point of interest {pointOfInterestEntity.Name} with id {pointOfInterestEntity.Id} was deleted.");
-
-                return true;
+            try
+            {
+                return _pointsOfInterestOperation.DeletePointOfInterest(cityId, pointOfInterestId);
             }
             catch (Exception ex)
             {
@@ -195,16 +108,7 @@ namespace CityInfo.API.Services
         {
             try
             {
-                bool cityExist = await _cityInfoRepository.CityExistsAsync(cityId, cancellationToken);
-                if (!cityExist)
-                {
-                    _logger.LogError($"City does not exist: {cityId}");
-                    return null;
-                }
-                var pointsOfInterestForCityEntities = await _cityInfoRepository.GetPointsOfInterestForCityAsync(cityId, cancellationToken);
-
-                //map entity to dto use mapping: <Entities.PointOfInterest, Models.PointOfInterestDto>
-                return Mapper.Map<IEnumerable<PointOfInterestDto>>(pointsOfInterestForCityEntities);
+                return await _pointsOfInterestOperation.GetPointsOfInterestForCityAsync(cityId, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -216,22 +120,7 @@ namespace CityInfo.API.Services
         {
             try
             {
-                bool cityExist = await _cityInfoRepository.CityExistsAsync(cityId, cancellationToken);
-                if (!cityExist)
-                {
-                    _logger.LogError($"City does not exist: {cityId}");
-                    return null;
-                }
-
-                var pointOfInterestEntity = await _cityInfoRepository.GetPointOfInterestForCityAsync(cityId, pointOfInterestId, cancellationToken);
-                if (pointOfInterestEntity == null)
-                {
-                    _logger.LogError($"Point of Interest {pointOfInterestId} for city {cityId} does not exist");
-                    return null;
-                }
-
-                //map entity to dto use mapping: <Entities.PointOfInterest, Models.PointOfInterestDto>
-                return Mapper.Map<PointOfInterestDto>(pointOfInterestEntity);
+                return await _pointsOfInterestOperation.GetPointOfInterestForCityAsync(cityId, pointOfInterestId, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -244,24 +133,7 @@ namespace CityInfo.API.Services
         {
             try
             {
-                if (!await _cityInfoRepository.CityExistsAsync(cityId, cancellationToken))
-                {
-                    _logger.LogError($"City does not exist: {cityId}");
-                    return null;
-                }
-
-                //!!AK7.2 map dto to entity use mapping: note mapper maps subset of fields
-                //<Models.PointOfInterestForCreationDto, Entities.PointOfInterest>
-                var pointOfInterestEntity = Mapper.Map<Entities.PointOfInterest>(pointOfInterestDto);
-                //Add created entity
-                await _cityInfoRepository.AddPointOfInterestForCityAsync(cityId, pointOfInterestEntity, cancellationToken);
-                //save new entity to DB
-                if (!await _cityInfoRepository.SaveAsync(cancellationToken))
-                    throw new ApplicationException($"A problem while saving Point of Int for city Id: {cityId}.");
-
-                //map entity back to dto: to get the new generated id (generated after Save()) 
-                //<Entities.PointOfInterest, Models.PointOfInterestDto>
-                return Mapper.Map<PointOfInterestDto>(pointOfInterestEntity);
+                return await _pointsOfInterestOperation.AddPointOfInterestForCityAsync(cityId, pointOfInterestDto, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -270,33 +142,11 @@ namespace CityInfo.API.Services
             }
         }
 
-        public async Task<UpdatePoints> UpdatePointOfInterestAsync(int cityId, int pointOfInterestId, PointOfInterestForUpdateDto pointOfInterestDto, CancellationToken cancellationToken)
+        public async Task<bool> UpdatePointOfInterestAsync(int cityId, int pointOfInterestId, PointOfInterestForUpdateDto pointOfInterestDto, CancellationToken cancellationToken)
         {
             try
             {
-                var result = UpdatePoints.OK;
-
-                if (!await _cityInfoRepository.CityExistsAsync(cityId, cancellationToken))
-                {
-                    _logger.LogError($"City does not exist: {cityId}");
-                    result = UpdatePoints.NOT_FOUND;
-                }
-
-                var pointOfInterestEntity = await _cityInfoRepository.GetPointOfInterestForCityAsync(cityId, pointOfInterestId, cancellationToken);
-                if (pointOfInterestEntity == null)
-                {
-                    _logger.LogError($"Point of Interest {pointOfInterestId} for city {cityId} does not exist");
-                    result = UpdatePoints.NOT_FOUND;
-                }
-
-                //we do full update on PUT request (if some field is missed then it is populated with null!!!)
-                //map dto to entity use mapping: <PointOfInterestForUpdateDto, Entities.PointOfInterest>()
-                Mapper.Map(pointOfInterestDto, pointOfInterestEntity);
-
-                if (!await _cityInfoRepository.SaveAsync(cancellationToken))
-                    throw new ApplicationException($"A problem while saving city Id: {cityId}, Point Of Int: {pointOfInterestId} .");
-
-                return result;
+                return await _pointsOfInterestOperation.UpdatePointOfInterestAsync(cityId, pointOfInterestId, pointOfInterestDto, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -309,12 +159,7 @@ namespace CityInfo.API.Services
         {
             try
             {
-                var pointOfInterestEntity = await _cityInfoRepository.GetPointOfInterestForCityAsync(cityId, pointOfInterestId, cancellationToken);
-
-                //<Models.PointOfInterestForUpdateDto, Entities.PointOfInterest>
-                Mapper.Map(pointOfInterestDto, pointOfInterestEntity);
-                if (!await _cityInfoRepository.SaveAsync(cancellationToken))
-                    throw new ApplicationException($"A problem while saving city Id: {cityId}, Point Of Int: {pointOfInterestId} .");
+                await _pointsOfInterestOperation.PartiallyUpdatePointOfInterestAsync(cityId, pointOfInterestId, pointOfInterestDto, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -327,28 +172,7 @@ namespace CityInfo.API.Services
         {
             try
             {
-                if (!await _cityInfoRepository.CityExistsAsync(cityId, cancellationToken))
-                {
-                    _logger.LogError($"City does not exist: {cityId}");
-                    return false;
-                }
-
-                var pointOfInterestEntity = await _cityInfoRepository.GetPointOfInterestForCityAsync(cityId, pointOfInterestId, cancellationToken);
-                if (pointOfInterestEntity == null)
-                {
-                    _logger.LogError($"Point of Interest {pointOfInterestId} for city {cityId} does not exist");
-                    return false;
-                }
-
-                bool isDetelte = await _cityInfoRepository.DeletePointOfInterestAsync(pointOfInterestEntity, cancellationToken);
-                if (!isDetelte)
-                    throw new ApplicationException($"A problem while deleting city Id: {cityId}, Point Of Int: {pointOfInterestId} .");
-
-                //use custom service
-                await _mailService.SendAsync("Point of interest deleted.",
-                        $"Point of interest {pointOfInterestEntity.Name} with id {pointOfInterestEntity.Id} was deleted.");
-
-                return true;
+                return await _pointsOfInterestOperation.DeletePointOfInterestAsync(cityId, pointOfInterestId, cancellationToken);
             }
             catch (Exception ex)
             {

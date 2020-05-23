@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CityInfo.API.Services
+namespace CityInfo.API.Util.Interfaces
 {
     //create custom service interface
     public interface IMailService

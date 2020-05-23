@@ -1,12 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CityInfo.API.Models;
-using CityInfo.API.Services;
+using CityInfo.API.Services.Interfaces;
 
 namespace CityInfo.API.Controllers
 {

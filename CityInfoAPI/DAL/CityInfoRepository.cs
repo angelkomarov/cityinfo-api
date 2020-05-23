@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using CityInfo.API.Entities;
-
+using CityInfo.API.DAL.Interfaces;
 
 namespace CityInfo.API.Services
 {
@@ -70,6 +70,12 @@ namespace CityInfo.API.Services
         #endregion
 
         #region async
+
+        public async Task<bool> HealthCheckAsync(CancellationToken cancellationToken)
+        {
+            int cnt = await _context.Cities.Take(1).CountAsync(cancellationToken);
+            return (cnt == 1);
+        }
 
         public async Task<IEnumerable<City>> GetCitiesAsync(CancellationToken cancellationToken)
         {

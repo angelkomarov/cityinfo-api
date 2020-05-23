@@ -1,11 +1,12 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using CityInfo.API.Util.Interfaces;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CityInfo.API.Services
+namespace CityInfo.API.Util
 {
     //create custom service implementation
     public class LocalMailService : IMailService

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CityInfo.API.Services
+namespace CityInfo.API.Services.Interfaces
 {
     public interface ICitiesService
     {
